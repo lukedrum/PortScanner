@@ -46,6 +46,7 @@ def worker(tasks):
             host, port = tasks.get()
             status = is_port_open(host, port)
             results.put((host, port, status))
+            print(tasks.get())
             tasks.task_done()
         except ValueError:
             print('no ni ma')
