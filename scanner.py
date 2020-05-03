@@ -1,0 +1,102 @@
+# builtins
+import argparse
+import queue  # for exception Empty
+import time
+import socket
+
+# custom modules
+from multiprocessing import Queue, Process
+
+import dill
+
+import specparser
+
+# context for global variables describing the scan
+
+scanner_context = {}
+
+# argparsing
+parser = argparse.ArgumentParser()
+parser.add_argument("-p", "--ports", type=str, help="String describing a set of numbers", default="1-1000")
+parser.add_argument("-t", "--threads", type=int, help="Number of threads", default=1)
+parser.add_argument("-a", "--address", type=str, dest="addresses", action="append",
+                    help="IP host or network address of a target (can be specified multiple times)")
+parser.add_argument("-A", "--addrfile", type=str, dest="addrfiles", action="append",
+                    help="Name of a file which holds IP host or network addresses (can be specified multiple times)")
+args = parser.parse_args()
+
+scanner_context["ports"] = specparser.number_set(args.ports)
+scanner_context["threads"] = args.threads
+scanner_context["addresses"] = args.addresses
+
+# tasks are tuples of (addr, port)
+tasks = [(addr, port) for addr in scanner_context["addresses"] for port in scanner_context["ports"]]
+
+# create queues for IPC
+task_q = Queue()
+result_q = Queue()
+
+# fill tasks queue with tasks
+for task in tasks:
+    task_q.put(task)
+
+for i in range(scanner_context["threads"]):
+    task_q.put(None)  # dummy tasks to finish workers
+
+
+def is_port_open(host, port):
+    s = socket.socket()
+
+    try:
+        s.connect((host, port))
+        s.settimeout(0.2)
+    except:
+        return False
+    else:
+        return True
+
+def find_service_name(portNumber):
+    protocol1 = 'tcp'
+    protocol2 = 'udp'
+    service_name1 = socket.getservbyport(portNumber, protocol1)
+    service_name2 = socket.getservbyport(portNumber, protocol2)
+    if service_name1:
+        return service_name1
+    elif service_name2:
+        return service_name2
+    else:
+        return "ELSE"
+
+# worker code
+def worker(worker_id, task_q, result_q):
+    while True:
+        task = task_q.get()
+        if task is not None:
+            print(task)
+            status = is_port_open(task[0], task[1])
+            if status:
+                protocol_name = find_service_name(task[1])
+                result_q.put(("result from", task, status, protocol_name))
+            else:
+                result_q.put(("result from", task, status))
+        if not task:
+            break
+
+
+if __name__ == "__main__":
+    worker_v = dill.dumps(worker(id, task_q, result_q))
+    worker_pool = [Process(target=worker_v, args=(id, task_q, result_q)) for id in range(0, scanner_context["threads"])]
+
+    for worker in worker_pool:  # start the workers
+        worker.start()
+
+    for worker in worker_pool:  # wait for workers to finish
+        worker.join()  # cleanup
+
+    results = list()
+    while not result_q.empty():
+        results.append(result_q.get())
+
+    for ind, val in enumerate(results):
+        if val[2]:
+            print(results[ind])
