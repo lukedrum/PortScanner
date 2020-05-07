@@ -3,10 +3,10 @@ import argparse
 import queue  # for exception Empty
 import time
 import socket
-import time
 
 # custom modules
 from multiprocessing import Queue, Process
+from threading import Thread
 
 from pathos.multiprocessing import ProcessingPool as Pool
 
@@ -21,7 +21,7 @@ scanner_context = {}
 # argparsing
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--ports", type=str, help="String describing a set of numbers", default="440-450")
-parser.add_argument("-t", "--threads", type=int, help="Number of threads", default=2)
+parser.add_argument("-t", "--threads", type=int, help="Number of threads", default=10)
 parser.add_argument("-a", "--address", type=str, dest="addresses", action="append",
                     help="IP host or network address of a target (can be specified multiple times)")
 parser.add_argument("-A", "--addrfile", type=str, dest="addrfiles", action="append",
@@ -59,19 +59,6 @@ def is_port_open(host, port):
         return True
 
 
-# def find_service_name(portNumber):
-#     protocol1 = 'tcp'
-#     protocol2 = 'udp'
-#     service_name1 = socket.getservbyport(portNumber, protocol1)
-#     service_name2 = socket.getservbyport(portNumber, protocol2)
-#     if service_name1:
-#         return service_name1
-#     elif service_name2:
-#         return service_name2
-#     else:
-#         return "ELSE"
-
-
 # worker code
 def worker(worker_id, task_q, result_q):
     while True:
@@ -80,41 +67,24 @@ def worker(worker_id, task_q, result_q):
 
             status = is_port_open(task[0], task[1])
             result_q.put(("result from", task, status))
-            print(task, status)
+            # print(task, status)
             time.sleep(2)
         if not task:
             break
 
 
 if __name__ == "__main__":
-    # worker_v = dill.dumps(worker(id, task_q, result_q))
-    # worker_pool = [Process(target=worker_v, args=(id, task_q, result_q)) for id in range(0, scanner_context["threads"])]
-    #
-    # for worker in worker_pool:  # start the workers
-    #     worker.start()
-    #
-    # for worker in worker_pool:  # wait for workers to finish
-    #     worker.join()  # cleanup
-    #
-    # results = list()
-    # while not result_q.empty():
-    #     results.append(result_q.get())
-    #
-    # for ind, val in enumerate(results):
-    #     if val[2]:
-    #         print(results[ind])
 
-    # with Pool(scanner_context['threads']) as pool:
-    #     pool.uimap(worker(id, task_q, result_q), [task_q, result_q])
+    worker_pool = []
+    for id in range(0, scanner_context["threads"]):
+        process = Process(target=worker(id, task_q, result_q), args=(id, task_q, result_q))
+        worker_pool.append(process)
 
-    # p = Pool(scanner_context['threads'])
-    # workers_pool = p.uimap(worker(id, task_q, result_q), [id, task_q, result_q])
+    for worker in worker_pool:  # start the workers
+        worker.start()
 
-    with Pool(scanner_context['threads']) as p:
-        p.uimap(worker(id, task_q, result_q), [id, task_q, result_q])
-
-    p.close()
-    p.join()
+    for worker in worker_pool:  # wait for workers to finish
+        worker.join()  # cleanup
 
     results = list()
     while not result_q.empty():
@@ -123,4 +93,3 @@ if __name__ == "__main__":
     for ind, val in enumerate(results):
         if val[2]:
             print(results[ind])
-
