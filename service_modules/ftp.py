@@ -1,20 +1,20 @@
-import socket
 import re
 
 _ftp_response_regex = re.compile('^([0-9]+) (.+)$')
 
-TEST_VECTOR = [b'NOOP\n', b'SYST\n', b'LIST\n']
+SERVICE_DESC = {
+    'name': 'ftp',
+    'default_ports': [ 21 ]
+}
 
-DEFAULT_PORT = 21
+_RESP_LEN = 256
 
-RESP_LEN = 256
-
-class FtpConn:
+class ConnChecker:
     def __init__(self, s):
         self._s = s
         s.settimeout(2)
         try:
-            greet_resp = s.recv(RESP_LEN).decode('ascii').strip()
+            greet_resp = s.recv(_RESP_LEN).decode('ascii').strip()
             greet_resp_match = _ftp_resp_split(greet_resp)
         except socket.timeout:
             print('FTP ERROR: No greeting, possibly not ftp')
@@ -31,21 +31,22 @@ class FtpConn:
         if code >= 300:
             print('FTP WARN: Greeting returned bad code: "' + greet_resp + '"')
 
-        for test in TEST_VECTOR:
-            s.send(test)
-            resp = s.recv(RESP_LEN).decode('ascii').strip()
+        self._is_ftp = False
+
+        test_cmds = ['RETR somefile.txt', 'NOOP', 'SYST', 'LIST']
+        for test in test_cmds:
+            resp = _ftp_run_cmd(self._s, test)
 
             m = re.match(_ftp_response_regex, resp)
 
             # if any test vector fails, its not real ftp
-            if not m:
-                self._is_ftp = False
-                return
+            if m:
+                self._is_ftp = True
+                break
         
-        self._is_ftp = True
         self._greet = msg
 
-    def get_version_string(self):
+    def get_info_string(self):
         resp = _ftp_run_cmd(self._s, 'SYST')
         (code, msg) = _ftp_resp_split(resp)
 
@@ -77,7 +78,7 @@ def _ftp_run_cmd(s, cmd):
     cmd = cmd.encode('ascii')
     s.send(cmd)
 
-    resp = s.recv(RESP_LEN)
+    resp = s.recv(_RESP_LEN)
     resp = resp.decode('ascii').strip()
 
     return resp
