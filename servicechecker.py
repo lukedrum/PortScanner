@@ -34,6 +34,10 @@ if __name__ == '__main__':
             print('MOD LOADER - omitting module ' + module_name + ' - service name "' + desc['name'] + '" already occupied by another module')
             break
 
+        if not 'ConnChecker' in mod.__dict__ or not isinstance(mod.ConnChecker, type):
+            print('MOD LOADER - omitting module ' + module_name + ' - missing class ConnChecker')
+            break
+
         services[desc['name']] = mod
 
         if not 'default_ports' in desc:
