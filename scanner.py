@@ -5,7 +5,7 @@ import queue # for exception Empty
 import time
 
 # custom modules
-import specparser
+import internals.specparser
 
 # context for global variables describing the scan
 if __name__ == "__main__":

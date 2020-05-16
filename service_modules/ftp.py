@@ -47,15 +47,20 @@ class ConnChecker:
         self._greet = msg
 
     def get_info_string(self):
-        resp = _ftp_run_cmd(self._s, 'SYST')
+        resp = _ftp_run_cmd(self._s, 'USER anonymous')
         (code, msg) = _ftp_resp_split(resp)
+
+        anon = 'Anonymous Access: ' + str(code < 400)
+
+        resp = _ftp_run_cmd(self._s, 'SYST')
+        (code, syst) = _ftp_resp_split(resp)
 
         # if server doesn't let us SYST without logging in
         # return greeting as version string, otherwise return both greeting and SYST response
         if code >= 300:
-            return self._greet
+            return self._greet + ' | ' + anon
         else:
-            return self._greet + ' | ' + msg
+            return self._greet + ' | ' + syst + ' | ' + anon
 
     def is_valid(self):
         return self._is_ftp
