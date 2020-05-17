@@ -3,8 +3,8 @@ import ssl
 
 import internals.services as serv
 
-HOST = '10.11.12.1'
-PORT = 21
+HOST = '91.198.174.192'
+PORT = 443
 
 if __name__ == '__main__':
     services = serv.load()
@@ -19,7 +19,11 @@ if __name__ == '__main__':
 
             if mapping['ssl']:
                 context = ssl.create_default_context()
-                s = context.wrap_socket(s)
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE # liberal settings
+
+                s = context.wrap_socket(s, server_hostname=HOST)
+                service_name = service_name + '/ssl'
 
             s.connect((HOST, PORT))
 

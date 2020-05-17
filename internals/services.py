@@ -87,6 +87,7 @@ def map_ports(services, debug=False):
                     port_map[p] = [{ 'ssl': True, 'service_name': name }]
                 else:
                     port_map[p].append({ 'ssl': True, 'service_name': name })
+        elif debug:
             print('PORT MAPPER - no "default_ports_ssl" provided in service ' + name + ' - no ssl mapping created')
 
     return port_map
