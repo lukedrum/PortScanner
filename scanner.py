@@ -25,7 +25,20 @@ if __name__ == "__main__":
     scanner_context["ports"] = specparser.number_set(args.ports)
     scanner_context["threads"] = args.threads
     scanner_context["addresses"] = args.addresses
+    print(type(scanner_context["addresses"]))
 
+    for ind, addr_name in enumerate(args.addrfiles):
+        with open(addr_name) as addres_file:
+            new_addr = [line.rstrip('\n') for line in addres_file]
+
+    if scanner_context["addresses"] is not None:
+        for ind, single_addr in enumerate(new_addr):
+            if single_addr not in scanner_context["addresses"]:
+                scanner_context["addresses"].append(single_addr)
+    else:
+        scanner_context["addresses"] = new_addr
+
+    print(scanner_context["addresses"])
     # tasks are tuples of (addr, port)
     tasks = [(addr, port) for addr in scanner_context["addresses"] for port in scanner_context["ports"]]
 
@@ -71,14 +84,17 @@ if __name__ == "__main__":
 
     worker_pool = [threading.Thread(target=worker, args=(id, task_q, result_q)) for id in range(0, scanner_context["threads"])]
 
+    start_time = time.time()
     for worker in worker_pool:  # start the workers
         worker.start()
 
     for worker in worker_pool:  # wait for workers to finish
         worker.join()  # cleanup
 
+    print(time.time()-start_time)
+
     results = list()
     while not result_q.empty():
         results.append(result_q.get())
 
-    print(results)
+    # print(results)
