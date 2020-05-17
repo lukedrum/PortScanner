@@ -6,7 +6,8 @@ _http_pow_regex = re.compile('^(X-Powered-By:.*)', re.MULTILINE)
 
 SERVICE_DESC = {
     'name': 'http',
-    'default_ports': [ 80 ]
+    'default_ports': [ 80 ],
+    'default_ports_ssl': [ 443 ]
 }
 
 _RESP_LEN = 256
@@ -20,7 +21,7 @@ class ConnChecker:
         test_cmd = "GET / HTTP/1.1\r\nHost:%s\r\n\r\n" % target_host
         try:
             self._resp = _http_run_cmd(self._s, test_cmd)
-            self._server = _http_resp_split(self._resp).strip()
+            self._server_info = _http_resp_split(self._resp).strip()
             self._is_http = True
 
         except socket.timeout:
@@ -30,7 +31,7 @@ class ConnChecker:
 
     def get_info_string(self):
 
-        return self._server # tu nie dziala a jak wpisze self._resp to dziala, jedno i drugie to str
+        return self._server_info
 
     def is_valid(self):
         return self._is_http
@@ -40,7 +41,7 @@ def _http_resp_split(resp):
     m_serv = re.search(_http_server_regex, resp)
 
     if not m_serv:
-        return None
+        return ""
 
     server = str(m_serv.group(1))
     return server
