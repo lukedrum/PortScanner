@@ -20,7 +20,7 @@ class ConnChecker:
         test_cmd = "GET / HTTP/1.1\r\nHost:%s\r\n\r\n" % target_host
         try:
             self._resp = _http_run_cmd(self._s, test_cmd)
-            self._server = _http_resp_split(self._resp)
+            self._server = _http_resp_split(self._resp).strip()
             self._is_http = True
 
         except socket.timeout:
