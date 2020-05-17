@@ -21,7 +21,7 @@ class ConnChecker:
         test_cmd = "GET / HTTP/1.1\r\nHost:%s\r\n\r\n" % target_host
         try:
             self._resp = _http_run_cmd(self._s, test_cmd)
-            self._server_info = _http_resp_split(self._resp).strip()
+
             self._is_http = True
 
         except socket.timeout:
@@ -30,8 +30,8 @@ class ConnChecker:
             return
 
     def get_info_string(self):
-
-        return self._server_info
+        info_string =_http_resp_split(self._resp)
+        return info_string
 
     def is_valid(self):
         return self._is_http
@@ -39,12 +39,18 @@ class ConnChecker:
 
 def _http_resp_split(resp):
     m_serv = re.search(_http_server_regex, resp)
+    m_add = re.search(_http_pow_regex, resp)
 
     if not m_serv:
         return ""
 
     server = str(m_serv.group(1))
-    return server
+    if m_add:
+        additional_server_info = str(m_add.group(1))
+        info = server.strip() +" "+ additional_server_info.strip()
+        return info
+    else:
+        return server.strip()
 
 
 def _http_run_cmd(s, cmd):
