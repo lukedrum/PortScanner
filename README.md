@@ -1,2 +1,2 @@
 # PortScanner
-Port Scanner project for High-level Programming Languages
+Port Scanner project for High-level Programming Languages classes
