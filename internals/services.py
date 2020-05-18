@@ -1,5 +1,7 @@
 import importlib
 import os
+import ssl
+import socket
 
 # check if mod exposes proper interface
 def _is_module_compatible(mod, module_name, debug=False):
@@ -25,7 +27,10 @@ def _is_module_compatible(mod, module_name, debug=False):
 def _get_module_candidates(debug=False):
     module_names = os.listdir('./service_modules')
 
-    module_names.remove('__pycache__') # ugly fix to not include pycache
+    try:
+        module_names.remove('__pycache__') # ugly fix to not include pycache
+    except:
+        pass
 
     for name in module_names:
         path = './service_modules/' + name
@@ -91,3 +96,59 @@ def map_ports(services, debug=False):
             print('PORT MAPPER - no "default_ports_ssl" provided in service ' + name + ' - no ssl mapping created')
 
     return port_map
+
+def identify(host, port, services, port_map):
+    checked = []
+
+    if port in port_map:
+        for mapping in port_map[port]:
+            service_name = mapping['service_name']
+            mod = services[service_name]
+
+            checked.append(service_name)
+
+            s = socket.socket()
+
+            if mapping['ssl']:
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE # liberal settings
+
+                s = context.wrap_socket(s, server_hostname=HOST)
+                service_name = service_name + '/ssl'
+
+            s.connect((host, port))
+
+            conn = mod.ConnChecker(s)
+
+            if conn.is_valid():
+                return (service_name, conn.get_info_string())
+    
+    # if not found in port mapping, try every other module
+    for service_name in services:
+        if service_name in checked:
+            continue
+
+        mod = services[service_name]
+
+        s = socket.socket()
+
+        if mapping['ssl']:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE # liberal settings
+
+            s = context.wrap_socket(s, server_hostname=HOST)
+            service_name = service_name + '/ssl'
+
+        s.connect((host, port))
+
+        conn = mod.ConnChecker(s)
+
+        if conn.is_valid():
+            return (service_name, conn.get_info_string())
+
+    # if all else fails
+    return ('unknown', None)
+
+        

@@ -17,19 +17,19 @@ class ConnChecker:
             greet_resp = s.recv(_RESP_LEN).decode('ascii').strip()
             greet_resp_match = _ftp_resp_split(greet_resp)
         except socket.timeout:
-            print('FTP ERROR: No greeting, possibly not ftp')
+            #print('FTP ERROR: No greeting, possibly not ftp')
             self._is_ftp = False
             return
 
         if not greet_resp_match:
-            print('FTP ERROR: Bad greet: "' + greet_resp + '"')
+            #print('FTP ERROR: Bad greet: "' + greet_resp + '"')
             self._is_ftp = False
             return
 
         (code, msg) = greet_resp_match
 
-        if code >= 300:
-            print('FTP WARN: Greeting returned bad code: "' + greet_resp + '"')
+        #if code >= 300
+            #print('FTP WARN: Greeting returned bad code: "' + greet_resp + '"')
 
         self._is_ftp = False
 
