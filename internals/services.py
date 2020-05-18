@@ -117,7 +117,10 @@ def identify(host, port, services, port_map):
                 s = context.wrap_socket(s, server_hostname=HOST)
                 service_name = service_name + '/ssl'
 
-            s.connect((host, port))
+            try:
+                s.connect((host, port))
+            except:
+                continue
 
             conn = mod.ConnChecker(s)
 
@@ -133,20 +136,32 @@ def identify(host, port, services, port_map):
 
         s = socket.socket()
 
-        if mapping['ssl']:
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE # liberal settings
-
-            s = context.wrap_socket(s, server_hostname=HOST)
-            service_name = service_name + '/ssl'
-
-        s.connect((host, port))
+        try:
+            s.connect((host, port))
+        except:
+            continue
 
         conn = mod.ConnChecker(s)
 
         if conn.is_valid():
             return (service_name, conn.get_info_string())
+
+        #check ssl
+        s = socket.socket()
+
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE # liberal settings
+
+        s = context.wrap_socket(s, server_hostname=HOST)
+        service_name = service_name + '/ssl'
+
+        try:
+            s.connect((host, port))
+        except:
+            continue
+
+        conn = mod.ConnChecker(s)
 
     # if all else fails
     return ('unknown', None)
