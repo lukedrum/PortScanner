@@ -1,3 +1,4 @@
+import socket
 import re
 
 _ftp_response_regex = re.compile('^([0-9]+) (.+)$')
@@ -20,6 +21,8 @@ class ConnChecker:
             #print('FTP ERROR: No greeting, possibly not ftp')
             self._is_ftp = False
             return
+
+        s.settimeout(None)
 
         if not greet_resp_match:
             #print('FTP ERROR: Bad greet: "' + greet_resp + '"')

@@ -114,7 +114,7 @@ def identify(host, port, services, port_map):
                 context.check_hostname = False
                 context.verify_mode = ssl.CERT_NONE # liberal settings
 
-                s = context.wrap_socket(s, server_hostname=HOST)
+                s = context.wrap_socket(s, server_hostname=host)
                 service_name = service_name + '/ssl'
 
             try:
@@ -153,7 +153,7 @@ def identify(host, port, services, port_map):
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE # liberal settings
 
-        s = context.wrap_socket(s, server_hostname=HOST)
+        s = context.wrap_socket(s, server_hostname=host)
         service_name = service_name + '/ssl'
 
         try:
